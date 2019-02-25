@@ -1,0 +1,14 @@
+targets:
+  $default:
+    builders:
+      jsoninflater|json_inflater:
+        enabled: true
+
+builders:
+  json_inflater:
+    import: "package:jsoninflater/jsonInflater.dart"
+    builder_factories: ["jsonInflaterBuilder"]
+    build_extensions: {".dart": ["json_inflater.g.part"]}
+    auto_apply: dependents
+    build_to: cache
+    applies_builders: ["source_gen|combining_builder"]
