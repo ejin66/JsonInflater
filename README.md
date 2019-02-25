@@ -20,6 +20,21 @@
        return 'JsonTest{msg: $msg}';
      }
    }
+   
+   @JsonInflater()
+   class JsonTest2<K> with PartOfJsonTest2 {
+
+     String msg;
+     K data;
+
+     JsonTest2(this.msg, this.data);
+
+     @override
+     String toString() {
+       return 'JsonTest2{msg: $msg, data: $data}';
+     }
+   }
+   
    ```
 
    > `mixin`类是代码生成的，格式是：PartOf${className}。功能是提供`toJson()`、`parse()`方法。
