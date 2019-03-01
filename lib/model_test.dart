@@ -3,34 +3,43 @@ import 'package:jsoninflater/jsonInflater.dart';
 part 'model_test.g.dart';
 
 @JsonInflater()
-class JsonTest with PartOfJsonTest {
+class TestNonGenerics with PartOfTestNonGenerics {
 
   String msg;
 
-  JsonTest(this.msg);
+  TestNonGenerics(this.msg);
 
   @override
   String toString() {
-    return 'JsonTest{msg: $msg}';
+    return 'TestNonGenerics{msg: $msg}';
   }
-
-
 }
 
 @JsonInflater()
-class JsonTest2<K> with PartOfJsonTest2 {
+class TestGenerics1<K> with PartOfTestGenerics1 {
 
   String msg;
   K data;
 
-  JsonTest2(this.msg, this.data);
+  TestGenerics1(this.msg, this.data);
 
+  @override
+  String toString() {
+    return 'TestGenerics1{msg: $msg, data: $data}';
+  }
+}
+
+@JsonInflater()
+class TestGenerics2<K> with PartOfTestGenerics2 {
+
+  String msg;
+  K data;
+
+  TestGenerics2(this.msg, this.data);
 
 
   @override
   String toString() {
-    return 'JsonTest2{msg: $msg, data: $data}';
+    return 'TestGenerics2{msg: $msg, data: $data}';
   }
-
-
 }

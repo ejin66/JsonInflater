@@ -57,44 +57,12 @@ class JsonInflaterGenerator extends Generator {
   generate(LibraryReader library, BuildStep buildStep) {
     var values = List<String>();
 
-    values.add("""
-      dynamic parse<T>(dynamic data, [String typeName]) {
-        Type t = T;
-        return _\$getInstanceT(data, typeName ?? t.toString());
-      }
-    """);
+    var allClassElements = library.annotatedWith(typeChecker).map((e) {
+      return e.element as ClassElement;
+    }).toList();
 
-    values.add("""
-      _\$getInstanceT(dynamic data, String typeName) {
-      
-          if (isDynamicType(typeName)) {
-            return data;
-          }
-        
-          if (isBuiltInType(typeName)) {
-            if (getMainType(typeName) == "List") {
-              return (data as List).map((t) {
-                return _\$getInstanceT(t, getGenericsType(typeName));
-              }).toList();
-            }
-        
-          if (getMainType(typeName) == "Map") {
-            return (data as Map<String, dynamic>).map((k, v) {
-              return MapEntry<String, dynamic>(k, _\$getInstanceT(v, getGenericsType(typeName)));
-            });
-          }
-            return data;
-          }
-        
-     """);
-
-    for (var annotatedElement in library.annotatedWith(typeChecker)) {
-      print(annotatedElement.element.name);
-      var generatedValue = generateInstance(annotatedElement.element);
-      values.add(generatedValue);
-    }
-    values.add("return null;");
-    values.add("}");
+    values.addAll(generateParseFunctions());
+    values.addAll(generateGetInstanceFunctions(allClassElements));
 
     for (var annotatedElement in library.annotatedWith(typeChecker)) {
       var generatedValue = generateForAnnotatedElement(
@@ -105,34 +73,56 @@ class JsonInflaterGenerator extends Generator {
       values.add(extendsClass);
     }
 
-    final valuesStr =  values.join('\n\n');
+    var valuesStr =  values.join('\n\n');
 
-    RegExp exp = RegExp(r'_\$(.+)FromJson(<.+>)?\(Map<String, dynamic> json\)');
-
-    final result = valuesStr.replaceAllMapped(exp, (m) {
-      String str = m.group(0);
-      return str.substring(0, str.length - 27) + "(Map<String, dynamic> json, [String typeName])";
+    RegExp exp = RegExp(r'_\$(.+)FromJson<(.+?)>(\(Map<String, dynamic> json\))([\s\S]*?)(parse<.+>)([\s\S]*?)}');
+    exp.allMatches(valuesStr).forEach((m) {
+      valuesStr += _parseValue(m.group(1), m.group(2), m.group(3), m.group(4), m.group(6), 2);
+      valuesStr += _parseValue(m.group(1), m.group(2), m.group(3), m.group(4), m.group(6), 3);
+      valuesStr += _parseValue(m.group(1), m.group(2), m.group(3), m.group(4), m.group(6), 4);
     });
 
-    return result;
+    return valuesStr;
   }
 
-  String generateInstance(Element element) {
-    if (element is!  ClassElement) {
-      throw InvalidGenerationSourceError('Generator cannot target `${element.name}`.',
-          todo: 'Remove the JsonInflater annotation from `${element.name}`.',
-          element: element);
-    }
 
-    ClassElement classElement = element as ClassElement;
-
-    String output = """
-    
-      if (getMainType(typeName) == \"${classElement.name}\") {
-          return _\$${classElement.name}FromJson(data, getGenericsType(typeName));
+  Iterable<String> generateParseFunctions() {
+    const parse = """
+      T parse<T>(dynamic data) {
+        return _\$getInstanceT<T>(data);
       }
-      
     """;
+    const parse2 = """
+      T2 parse2<T2, T1>(dynamic data) {
+        return _\$getInstanceT2<T2, T1>(data);
+      }
+    """;
+    const parse3 = """
+      T3 parse3<T3, T2, T1>(dynamic data) {
+        return _\$getInstanceT3<T3, T2, T1>(data);
+      }
+    """;
+    const parse4 = """
+      T4 parse4<T4, T3, T2, T1>(dynamic data) {
+        return _\$getInstanceT4<T4, T3, T2, T1>(data);
+      }
+    """;
+    const parse5 = """
+      T5 parse5<T5, T4, T3, T2, T1>(dynamic data) {
+        return _\$getInstanceT5<T5, T4, T3, T2, T1>(data);
+      }
+    """;
+    return [parse, parse2, parse3, parse4, parse5];
+  }
+
+  Iterable<String> generateGetInstanceFunctions(List<ClassElement> elements) {
+    var output = <String>[];
+    output
+      ..addAll(_getInstanceFunc(elements))
+      ..addAll(_getInstanceFuncMulti(elements, 2))
+      ..addAll(_getInstanceFuncMulti(elements, 3))
+      ..addAll(_getInstanceFuncMulti(elements, 4))
+      ..addAll(_getInstanceFuncMulti(elements, 5));
     return output;
   }
 
@@ -141,14 +131,7 @@ class JsonInflaterGenerator extends Generator {
   }
 
   String generateExtendsClass(Element element) {
-    if (element is!  ClassElement) {
-      throw InvalidGenerationSourceError('Generator cannot target `${element.name}`.',
-          todo: 'Remove the JsonInflater annotation from `${element.name}`.',
-          element: element);
-    }
-
     final classElement = element as ClassElement;
-
     String genericsName = "";
     if (classElement.typeParameters.length > 0) {
       genericsName = "<${classElement.typeParameters.first.name}>";
@@ -156,17 +139,12 @@ class JsonInflaterGenerator extends Generator {
 
     var output = """
       mixin PartOf${element.name} {
-
         static ${element.name}$genericsName parse$genericsName(Map<String, dynamic> map) {
           return _\$${element.name}FromJson$genericsName(map);
         }
-        
         Map<String, dynamic> toJson() => _\$${element.name}ToJson(this);
-      
       }
-    
     """;
-
     return output;
   }
 
@@ -179,7 +157,7 @@ class GenericsHelper extends TypeHelper {
   @override
   Object deserialize(DartType targetType, String expression, TypeHelperContext context) {
     if (targetType.element is TypeParameterElement) {
-      return "parse<${targetType.name}>($expression, typeName ?? ${targetType.name}.toString())";
+      return "parse<${targetType.name}>($expression)";
     }
     return null;
   }
@@ -194,8 +172,17 @@ class GenericsHelper extends TypeHelper {
 
 }
 
+bool _elementHasGenerics(ClassElement e) {
+  return e.typeParameters.length > 0;
+}
+
 isGenerics(String typeName) {
   return typeName.contains("<");
+}
+
+int getTypeCount(String typeName) {
+  RegExp exp = RegExp(r'''(,)''');
+  return exp.allMatches(typeName).length + 1;
 }
 
 getMainType(String typeName) {
@@ -225,7 +212,8 @@ isBuiltInType(String typeName) {
       || mainType == "double"
       || mainType == "bool"
       || mainType == "List"
-      || mainType == "Map") {
+      || mainType == "Map"
+      || mainType == "_InternalLinkedHashMap") {
     return true;
   }
   return false;
@@ -246,7 +234,7 @@ toMap(dynamic instance) {
       }).toList();
     }
 
-    if (getMainType(typeName) == "Map") {
+    if (getMainType(typeName) == "Map" || getMainType(typeName) == "_InternalLinkedHashMap") {
       return (instance as Map<String, dynamic>).map((k, v) {
         return MapEntry(k, toMap(v));
       });
@@ -257,27 +245,88 @@ toMap(dynamic instance) {
   return (instance as dynamic).toJson();
 }
 
-String getStringInstance() {
-  return null;
+Iterable<String> _getInstanceFunc(List<ClassElement> elements) {
+  var output = <String>[];
+  const part1 = """
+      T _\$getInstanceT<T>(dynamic data) {
+          final typeName = T.toString();
+          if (isBuiltInType(typeName) || isDynamicType(typeName)) {
+            return data as T;
+          }
+     """;
+  output.add(part1);
+
+  elements.where((e) => !_elementHasGenerics(e)).forEach((e) {
+    var part12 = """
+        if (typeName == "${e.name}") {
+          return _\$${e.name}FromJson(data) as T;
+        }
+      """;
+    output.add(part12);
+  });
+  output.add("return null;");
+  output.add("}");
+  return output;
 }
 
-int getIntInstance() {
-  return null;
+Iterable<String> _getInstanceFuncMulti(List<ClassElement> elements, int count) {
+
+  var genericsName = "T1, T2";
+  if (count == 3) {
+    genericsName = "T1, T2, T3";
+  } else if (count == 4) {
+    genericsName = "T1, T2, T3, T4";
+  } else if (count == 5) {
+    genericsName = "T1, T2, T3, T4, T5";
+  }
+
+
+  var output = <String>[];
+  var part2 = """
+      T1 _\$getInstanceT$count<$genericsName>(dynamic data) {
+        final typeName = getMainType(T1.toString());
+    """;
+
+  var builtInPart = """
+      if (typeName == "List") {
+          return (data as List).map((t) {
+            return _\$getInstanceT${count - 1 == 1 ? "" : count - 1}<${genericsName.substring(3)}>(t);
+          }).toList() as T1;
+        }
+    
+        if (typeName == "Map") {
+          return (data as Map).map((k, v) {
+            return MapEntry<String, T2>(
+                k as String, _\$getInstanceT${count - 1 == 1 ? "" : count - 1}<${genericsName.substring(3)}>(v));
+          }) as T1;
+        }
+  """;
+
+  output.add(part2);
+  output.add(builtInPart);
+
+  elements.where((e) => _elementHasGenerics(e)).forEach((e) {
+    var part22 = """
+        if (typeName == "${e.name}") {
+          return _\$${e.name}FromJson${count - 1 == 1 ? "" : count - 1}<${genericsName.substring(3)}>(data) as T1;
+        }
+      """;
+    output.add(part22);
+  });
+  output.add("return null;");
+  output.add("}");
+  return output;
 }
 
-double getDoubleInstance() {
-  return null;
-}
+String _parseValue(String p1, String p2, String p3, String p4, String p6, int count) {
+  var genericsName = "";
+  if (count == 2) {
+    genericsName = "$p2, T2";
+  } else if (count == 3) {
+    genericsName = "$p2, T2, T3";
+  } else if (count == 4) {
+    genericsName = "$p2, T2, T3, T4";
+  }
 
-bool getBoolInstance() {
-  return null;
+  return "$p1<$p2> _\$${p1}FromJson$count<$genericsName>$p3${p4}parse$count<$genericsName>$p6}";
 }
-
-List getListInstance() {
-  return null;
-}
-
-Map getMapInstance() {
-  return null;
-}
-
