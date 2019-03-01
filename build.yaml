@@ -3,12 +3,21 @@ targets:
     builders:
       jsoninflater|json_inflater:
         enabled: true
+      jsoninflater|json_gather:
+        enabled: true
 
 builders:
   json_inflater:
     import: "package:jsoninflater/jsonInflater.dart"
     builder_factories: ["jsonInflaterBuilder"]
-    build_extensions: {".dart": ["json_inflater.g.part"]}
+    build_extensions: {".dart": [".g.part"]}
     auto_apply: dependents
     build_to: cache
-    applies_builders: ["source_gen|combining_builder"]
+    runs_before: ['jsoninflater|json_gather']
+
+  json_gather:
+    import: "package:jsoninflater/jsonGather.dart"
+    builder_factories: ["jsonGatherBuilder"]
+    build_extensions: {".dart": [".internal.dart"]}
+    auto_apply: root_package
+    build_to: source

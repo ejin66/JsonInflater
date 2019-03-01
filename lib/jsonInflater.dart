@@ -2,11 +2,11 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:build/src/builder/build_step.dart';
+import 'package:jsoninflater/cacheInfo.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:json_serializable/type_helper.dart';
 import 'package:json_serializable/json_serializable.dart';
 import 'package:json_annotation/json_annotation.dart';
-
 
 class JsonInflater {
 
@@ -48,8 +48,11 @@ class JsonInflater {
 
 }
 
+Builder jsonInflaterBuilder(BuilderOptions options) => SharedPartBuilder([JsonInflaterGenerator()], "json_inflater");
 
 class JsonInflaterGenerator extends Generator {
+
+  static List<CacheInfo> cacheInfoList = [];
 
   TypeChecker get typeChecker => TypeChecker.fromRuntime(JsonInflater);
 
@@ -57,9 +60,14 @@ class JsonInflaterGenerator extends Generator {
   generate(LibraryReader library, BuildStep buildStep) {
     var values = List<String>();
 
+
     var allClassElements = library.annotatedWith(typeChecker).map((e) {
       return e.element as ClassElement;
     }).toList();
+
+    if (allClassElements.length > 0) {
+      cacheInfoList.add(CacheInfo(buildStep.inputId.package, buildStep.inputId.path));
+    }
 
     values.addAll(generateParseFunctions());
     values.addAll(generateGetInstanceFunctions(allClassElements));
@@ -75,7 +83,7 @@ class JsonInflaterGenerator extends Generator {
 
     var valuesStr =  values.join('\n\n');
 
-    RegExp exp = RegExp(r'_\$(.+)FromJson<(.+?)>(\(Map<String, dynamic> json\))([\s\S]*?)(parse<.+>)([\s\S]*?)}');
+    RegExp exp = RegExp(r'_\$(.+)FromJson<(.+?)>(\(Map<String, dynamic> json\))([\s\S]*?)(parseMap<.+>)([\s\S]*?)}');
     exp.allMatches(valuesStr).forEach((m) {
       valuesStr += _parseValue(m.group(1), m.group(2), m.group(3), m.group(4), m.group(6), 2);
       valuesStr += _parseValue(m.group(1), m.group(2), m.group(3), m.group(4), m.group(6), 3);
@@ -88,27 +96,27 @@ class JsonInflaterGenerator extends Generator {
 
   Iterable<String> generateParseFunctions() {
     const parse = """
-      T parse<T>(dynamic data) {
+      T parseMap<T>(dynamic data) {
         return _\$getInstanceT<T>(data);
       }
     """;
     const parse2 = """
-      T2 parse2<T2, T1>(dynamic data) {
+      T2 parseMap2<T2, T1>(dynamic data) {
         return _\$getInstanceT2<T2, T1>(data);
       }
     """;
     const parse3 = """
-      T3 parse3<T3, T2, T1>(dynamic data) {
+      T3 parseMap3<T3, T2, T1>(dynamic data) {
         return _\$getInstanceT3<T3, T2, T1>(data);
       }
     """;
     const parse4 = """
-      T4 parse4<T4, T3, T2, T1>(dynamic data) {
+      T4 parseMap4<T4, T3, T2, T1>(dynamic data) {
         return _\$getInstanceT4<T4, T3, T2, T1>(data);
       }
     """;
     const parse5 = """
-      T5 parse5<T5, T4, T3, T2, T1>(dynamic data) {
+      T5 parseMap5<T5, T4, T3, T2, T1>(dynamic data) {
         return _\$getInstanceT5<T5, T4, T3, T2, T1>(data);
       }
     """;
@@ -150,14 +158,11 @@ class JsonInflaterGenerator extends Generator {
 
 }
 
-Builder jsonInflaterBuilder(BuilderOptions options) => SharedPartBuilder([JsonInflaterGenerator()], "json_inflater");
-
-
 class GenericsHelper extends TypeHelper {
   @override
   Object deserialize(DartType targetType, String expression, TypeHelperContext context) {
     if (targetType.element is TypeParameterElement) {
-      return "parse<${targetType.name}>($expression)";
+      return "parseMap<${targetType.name}>($expression)";
     }
     return null;
   }
@@ -176,15 +181,6 @@ bool _elementHasGenerics(ClassElement e) {
   return e.typeParameters.length > 0;
 }
 
-isGenerics(String typeName) {
-  return typeName.contains("<");
-}
-
-int getTypeCount(String typeName) {
-  RegExp exp = RegExp(r'''(,)''');
-  return exp.allMatches(typeName).length + 1;
-}
-
 getMainType(String typeName) {
   final index = typeName.indexOf("<");
 
@@ -192,16 +188,6 @@ getMainType(String typeName) {
     return typeName;
   } else {
     return typeName.substring(0, index);
-  }
-}
-
-getGenericsType(String typeName) {
-  final index = typeName.indexOf("<");
-
-  if (index == -1) {
-    return null;
-  } else {
-    return typeName.substring(index + 1, typeName.length - 1);
   }
 }
 
@@ -328,5 +314,5 @@ String _parseValue(String p1, String p2, String p3, String p4, String p6, int co
     genericsName = "$p2, T2, T3, T4";
   }
 
-  return "$p1<$p2> _\$${p1}FromJson$count<$genericsName>$p3${p4}parse$count<$genericsName>$p6}";
+  return "$p1<$p2> _\$${p1}FromJson$count<$genericsName>$p3${p4}parseMap$count<$genericsName>$p6}";
 }

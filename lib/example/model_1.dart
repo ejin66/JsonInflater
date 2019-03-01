@@ -1,6 +1,6 @@
 import 'package:jsoninflater/jsonInflater.dart';
 
-part 'model_test.g.dart';
+part 'model_1.g.dart';
 
 @JsonInflater()
 class TestNonGenerics with PartOfTestNonGenerics {
