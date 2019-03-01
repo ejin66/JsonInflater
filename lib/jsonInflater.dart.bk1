@@ -57,15 +57,18 @@ class JsonInflaterGenerator extends Generator {
   generate(LibraryReader library, BuildStep buildStep) {
     var values = List<String>();
 
+    final builtInNames = ["String", "int", "double", "bool", "List", "Map"];
+    final allInstanceNames =  library.annotatedWith(typeChecker).map((e) => e.element.name).followedBy(builtInNames);
+
     values.add("""
-      dynamic parse<T>(dynamic data, [String typeName]) {
+      T parse<T>(dynamic data, [String typeName]) {
         Type t = T;
-        return _\$getInstanceT(data, typeName ?? t.toString());
+        return _\$getInstanceT<T>(data, typeName ?? t.toString());
       }
     """);
 
     values.add("""
-      _\$getInstanceT(dynamic data, String typeName) {
+      T _\$getInstanceT<T>(dynamic data, String typeName) {
       
           if (isDynamicType(typeName)) {
             return data;
@@ -75,26 +78,29 @@ class JsonInflaterGenerator extends Generator {
             if (getMainType(typeName) == "List") {
               return (data as List).map((t) {
                 return _\$getInstanceT(t, getGenericsType(typeName));
-              }).toList();
+              }).toList() as T;
             }
         
           if (getMainType(typeName) == "Map") {
             return (data as Map<String, dynamic>).map((k, v) {
               return MapEntry<String, dynamic>(k, _\$getInstanceT(v, getGenericsType(typeName)));
-            });
+            }) as T;
           }
             return data;
           }
         
      """);
 
+    
     for (var annotatedElement in library.annotatedWith(typeChecker)) {
       print(annotatedElement.element.name);
-      var generatedValue = generateInstance(annotatedElement.element);
+      var generatedValue = generateInstance(annotatedElement.element, allInstanceNames);
       values.add(generatedValue);
     }
     values.add("return null;");
     values.add("}");
+
+
 
     for (var annotatedElement in library.annotatedWith(typeChecker)) {
       var generatedValue = generateForAnnotatedElement(
@@ -105,31 +111,44 @@ class JsonInflaterGenerator extends Generator {
       values.add(extendsClass);
     }
 
+    values.addAll(generateInstanceClass(allInstanceNames));
+
+    values.add(generateGetInstanceClassFunction(allInstanceNames));
+
     final valuesStr =  values.join('\n\n');
 
     RegExp exp = RegExp(r'_\$(.+)FromJson(<.+>)?\(Map<String, dynamic> json\)');
 
     final result = valuesStr.replaceAllMapped(exp, (m) {
       String str = m.group(0);
-      return str.substring(0, str.length - 27) + "(Map<String, dynamic> json, [String typeName])";
+      String generics = m.group(2);
+      String genericsOptions = ", dynamic ignored";
+      if (generics != null) {
+          genericsOptions = generics.substring(1, generics.length - 1);
+          genericsOptions = ", $genericsOptions ${genericsOptions.toLowerCase()}";
+      }
+      return str.substring(0, str.length - 27) + "(Map<String, dynamic> json, [String typeName$genericsOptions])";
     });
 
     return result;
   }
 
-  String generateInstance(Element element) {
+  String generateInstance(Element element, Iterable<String> allInstanceNames) {
     if (element is!  ClassElement) {
       throw InvalidGenerationSourceError('Generator cannot target `${element.name}`.',
           todo: 'Remove the JsonInflater annotation from `${element.name}`.',
           element: element);
     }
 
+
+
     ClassElement classElement = element as ClassElement;
+
 
     String output = """
     
       if (getMainType(typeName) == \"${classElement.name}\") {
-          return _\$${classElement.name}FromJson(data, getGenericsType(typeName));
+          return _\$${classElement.name}FromJson(data, getGenericsType(typeName), _getInstanceClass(typeName)?.create()) as T;
       }
       
     """;
@@ -168,6 +187,34 @@ class JsonInflaterGenerator extends Generator {
     """;
 
     return output;
+  }
+
+  Iterable<String> generateInstanceClass(Iterable<String> allInstanceNames) {
+    return allInstanceNames.map((s) {
+      return '''
+        class _${s}Instance extends BaseInstance {
+          $s create() {
+            return null;
+          }
+        }
+      ''';
+    });
+  }
+
+  String generateGetInstanceClassFunction(Iterable<String> allInstanceNames) {
+    List<String> output = [];
+    output.add("BaseInstance _getInstanceClass(String typeName) {");
+    final tempList = allInstanceNames.map((s) {
+      return """
+        if ("$s" == getGenericsType(typeName)) {
+          return _${s}Instance();
+        }
+      """;
+    });
+    output.addAll(tempList);
+    output.add("return null;");
+    output.add("}");
+    return output.join("\n");
   }
 
 }
@@ -257,27 +304,9 @@ toMap(dynamic instance) {
   return (instance as dynamic).toJson();
 }
 
-String getStringInstance() {
-  return null;
-}
+abstract class BaseInstance {
 
-int getIntInstance() {
-  return null;
-}
+  dynamic create();
 
-double getDoubleInstance() {
-  return null;
-}
-
-bool getBoolInstance() {
-  return null;
-}
-
-List getListInstance() {
-  return null;
-}
-
-Map getMapInstance() {
-  return null;
 }
 
