@@ -52,10 +52,20 @@
    ```
 
    > `mixin`类是代码生成的，格式是：PartOf${className}。功能是提供`toJson()`、`parse()`方法。
+   
+   创建一个Json工具类，添加`JsonGather`注解。
+   ```dart
+   @JsonGather()
+   class JsonUtil {
 
+   }
+   ```
+   > 一个项目中只能有一个`JsonGather`注解。
+   
 2. 运行命令，生成代码：
 
    ```bash
+   flutter packages pub run build_runner clean
    flutter packages pub run build_runner build
    ```
 
