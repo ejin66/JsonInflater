@@ -1,28 +1,28 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'model_test.dart';
+part of 'model_1.dart';
 
 // **************************************************************************
 // JsonInflaterGenerator
 // **************************************************************************
 
-T parse<T>(dynamic data) {
+T parseMap<T>(dynamic data) {
   return _$getInstanceT<T>(data);
 }
 
-T2 parse2<T2, T1>(dynamic data) {
+T2 parseMap2<T2, T1>(dynamic data) {
   return _$getInstanceT2<T2, T1>(data);
 }
 
-T3 parse3<T3, T2, T1>(dynamic data) {
+T3 parseMap3<T3, T2, T1>(dynamic data) {
   return _$getInstanceT3<T3, T2, T1>(data);
 }
 
-T4 parse4<T4, T3, T2, T1>(dynamic data) {
+T4 parseMap4<T4, T3, T2, T1>(dynamic data) {
   return _$getInstanceT4<T4, T3, T2, T1>(data);
 }
 
-T5 parse5<T5, T4, T3, T2, T1>(dynamic data) {
+T5 parseMap5<T5, T4, T3, T2, T1>(dynamic data) {
   return _$getInstanceT5<T5, T4, T3, T2, T1>(data);
 }
 
@@ -160,7 +160,7 @@ mixin PartOfTestNonGenerics {
 }
 
 TestGenerics1<K> _$TestGenerics1FromJson<K>(Map<String, dynamic> json) {
-  return TestGenerics1<K>(json['msg'] as String, parse<K>(json['data']));
+  return TestGenerics1<K>(json['msg'] as String, parseMap<K>(json['data']));
 }
 
 Map<String, dynamic> _$TestGenerics1ToJson<K>(TestGenerics1<K> instance) =>
@@ -175,7 +175,7 @@ mixin PartOfTestGenerics1 {
 }
 
 TestGenerics2<K> _$TestGenerics2FromJson<K>(Map<String, dynamic> json) {
-  return TestGenerics2<K>(json['msg'] as String, parse<K>(json['data']));
+  return TestGenerics2<K>(json['msg'] as String, parseMap<K>(json['data']));
 }
 
 Map<String, dynamic> _$TestGenerics2ToJson<K>(TestGenerics2<K> instance) =>
@@ -189,33 +189,35 @@ mixin PartOfTestGenerics2 {
   Map<String, dynamic> toJson() => _$TestGenerics2ToJson(this);
 }
 TestGenerics1<K> _$TestGenerics1FromJson2<K, T2>(Map<String, dynamic> json) {
-  return TestGenerics1<K>(json['msg'] as String, parse2<K, T2>(json['data']));
+  return TestGenerics1<K>(
+      json['msg'] as String, parseMap2<K, T2>(json['data']));
 }
 
 TestGenerics1<K> _$TestGenerics1FromJson3<K, T2, T3>(
     Map<String, dynamic> json) {
   return TestGenerics1<K>(
-      json['msg'] as String, parse3<K, T2, T3>(json['data']));
+      json['msg'] as String, parseMap3<K, T2, T3>(json['data']));
 }
 
 TestGenerics1<K> _$TestGenerics1FromJson4<K, T2, T3, T4>(
     Map<String, dynamic> json) {
   return TestGenerics1<K>(
-      json['msg'] as String, parse4<K, T2, T3, T4>(json['data']));
+      json['msg'] as String, parseMap4<K, T2, T3, T4>(json['data']));
 }
 
 TestGenerics2<K> _$TestGenerics2FromJson2<K, T2>(Map<String, dynamic> json) {
-  return TestGenerics2<K>(json['msg'] as String, parse2<K, T2>(json['data']));
+  return TestGenerics2<K>(
+      json['msg'] as String, parseMap2<K, T2>(json['data']));
 }
 
 TestGenerics2<K> _$TestGenerics2FromJson3<K, T2, T3>(
     Map<String, dynamic> json) {
   return TestGenerics2<K>(
-      json['msg'] as String, parse3<K, T2, T3>(json['data']));
+      json['msg'] as String, parseMap3<K, T2, T3>(json['data']));
 }
 
 TestGenerics2<K> _$TestGenerics2FromJson4<K, T2, T3, T4>(
     Map<String, dynamic> json) {
   return TestGenerics2<K>(
-      json['msg'] as String, parse4<K, T2, T3, T4>(json['data']));
+      json['msg'] as String, parseMap4<K, T2, T3, T4>(json['data']));
 }
