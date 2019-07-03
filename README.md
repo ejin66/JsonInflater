@@ -8,14 +8,16 @@
 0. 添加依赖：
    ```yaml
    dev_dependencies:
-     json_serializable: ^2.0.0
+     json_serializable: 2.0.0
      jsoninflater: ^0.1.2
-     build_runner: ^1.0.0
+     build_runner: 1.0.0
    ```
 
 1. 创建模型，添加注解`JsonFlater`以及`mixin`类。如：
 
    ```dart
+   part `xxx.g.dart`;
+   
    @JsonInflater()
    class TestGenerics1<K> with PartOfTestGenerics1 {
    
