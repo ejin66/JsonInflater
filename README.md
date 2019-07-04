@@ -9,7 +9,7 @@
    ```yaml
    dev_dependencies:
      json_serializable: ^2.0.0
-     jsoninflater: ^0.1.2
+     jsoninflater: ^0.2.0
      build_runner: ^1.0.0
    ```
 
