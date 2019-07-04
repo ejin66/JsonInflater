@@ -135,7 +135,7 @@ class JsonInflaterGenerator extends Generator {
   }
 
   generateForAnnotatedElement(Element element, ConstantReader annotation, BuildStep buildStep) {
-    return JsonSerializableGenerator.withDefaultHelpers([GenericsHelper()]).generateForAnnotatedElement(element, annotation, buildStep);
+    return JsonSerializableGenerator.withDefaultHelpers([GenericsHelper(), JsonInflaterModelHelper()]).generateForAnnotatedElement(element, annotation, buildStep);
   }
 
   String generateExtendsClass(Element element) {
@@ -171,6 +171,33 @@ class GenericsHelper extends TypeHelper {
   Object serialize(DartType targetType, String expression, TypeHelperContext context) {
     if (targetType.element is TypeParameterElement) {
       return "toMap($expression)";
+    }
+    return null;
+  }
+
+}
+
+class JsonInflaterModelHelper extends TypeHelper {
+  @override
+  Object deserialize(DartType targetType, String expression, TypeHelperContext context) {
+    if (targetType.element is ClassElement) {
+      var clsElement = targetType.element as ClassElement;
+      var isJsonInflater = clsElement.metadata.any((e) => e.element.enclosingElement.name == "JsonInflater");
+      if (isJsonInflater) {
+        return "parseMap<${clsElement.name}>($expression)";
+      }
+    }
+    return null;
+  }
+
+  @override
+  Object serialize(DartType targetType, String expression, TypeHelperContext context) {
+    if (targetType.element is ClassElement) {
+      var clsElement = targetType.element as ClassElement;
+      var isJsonInflater = clsElement.metadata.any((e) => e.element.enclosingElement.name == "JsonInflater");
+      if (isJsonInflater) {
+        return "$expression.toJson()";
+      }
     }
     return null;
   }
